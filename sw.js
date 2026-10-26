@@ -1,4 +1,4 @@
-const CACHE = 'allkeys-v1';
+const CACHE = 'allkeys-v2';
 const FILES = ['./', 'index.html', 'style.css', 'crypto.js', 'app.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png', 'icons/favicon-64.png', 'icons/icon-180.png'];
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())));
