@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'; font-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#1E1E1E">
+<title>Allkeys</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon-64.png">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- Unlock / create -->
+<section id="vLock" class="screen center">
+  <img src="icons/icon-192.png" alt="" class="logo">
+  <h1 class="gold">Allkeys</h1>
+  <div id="lockUnlock" hidden>
+    <p class="dim">Enter your master password to unlock your passwords.</p>
+    <input id="uPw" type="password" autocomplete="current-password" placeholder="Master password">
+    <label class="chk"><input type="checkbox" data-show="uPw"> Show password</label>
+    <p id="uErr" class="err"></p>
+    <button id="uBtn" class="primary big">Unlock</button>
+  </div>
+  <div id="lockCreate" hidden>
+    <p class="dim">Create a master password, or bring your passwords over from your PC.</p>
+    <div class="warn">IMPORTANT: If you forget your master password, your saved passwords CANNOT be recovered - by anyone. Write it down and keep it somewhere safe.</div>
+    <input id="cPw1" type="password" autocomplete="new-password" placeholder="Master password (at least 8 characters)">
+    <input id="cPw2" type="password" autocomplete="new-password" placeholder="Type it again">
+    <label class="chk"><input type="checkbox" data-show="cPw1,cPw2"> Show passwords</label>
+    <p id="cErr" class="err"></p>
+    <button id="cBtn" class="primary big">Create Vault</button>
+    <div class="or">or</div>
+    <button id="cImport" class="big">Import vault file from PC</button>
+  </div>
+</section>
+
+<!-- Main list -->
+<section id="vMain" class="screen" hidden>
+  <header class="top">
+    <div><span class="title gold">Allkeys</span><span id="count" class="dim small"></span></div>
+    <div class="topbtns"><button id="bMenu" class="icon" aria-label="Menu">&#9776;</button><button id="bLock" class="icon" aria-label="Lock">&#128274;</button></div>
+  </header>
+  <div class="accent"></div>
+  <div class="searchrow"><input id="search" type="search" placeholder="Search" autocomplete="off"></div>
+  <ul id="list"></ul>
+  <p id="empty" class="dim center" hidden>No passwords saved yet. Tap + to add one.</p>
+  <button id="bAdd" class="fab primary" aria-label="Add">+</button>
+</section>
+
+<!-- Sheets / dialogs -->
+<div id="overlay" hidden></div>
+
+<div id="dMenu" class="sheet" hidden>
+  <button data-act="gen">Password Generator</button>
+  <button data-act="export">Export vault file (to PC)</button>
+  <button data-act="import">Import vault file (from PC)</button>
+  <button data-act="master">Change Master Password</button>
+  <button data-act="lock">Lock</button>
+  <button data-act="close" class="dim">Close</button>
+</div>
+
+<div id="dView" class="sheet" hidden>
+  <h2 id="vSite" class="gold"></h2>
+  <div class="field"><span class="lbl">Username</span><span id="vUser" class="val"></span><button id="vCopyU">Copy</button></div>
+  <div class="field"><span class="lbl">Password</span><span id="vPass" class="val mono"></span><button id="vReveal">Show</button><button id="vCopyP" class="primary">Copy</button></div>
+  <div class="field"><span class="lbl">Website</span><span id="vUrl" class="val"></span><button id="vOpen">Open</button></div>
+  <div class="field col"><span class="lbl">Notes</span><pre id="vNotes" class="val"></pre></div>
+  <p id="vDates" class="dim small"></p>
+  <div class="row"><button id="vEdit" class="primary">Edit</button><button id="vDel" class="danger">Delete</button><button data-close>Close</button></div>
+</div>
+
+<div id="dEdit" class="sheet" hidden>
+  <h2 id="eTitle" class="gold">Add Entry</h2>
+  <label>Site / App *<input id="eSite" autocomplete="off"></label>
+  <label>Username<input id="eUser" autocomplete="off" autocapitalize="none"></label>
+  <label>Password<input id="ePass" type="password" autocomplete="off"></label>
+  <label class="chk"><input type="checkbox" data-show="ePass"> Show</label>
+  <div class="row gen"><button id="eGen" class="primary">Generate Strong Password</button>
+    <label class="inl">Length <input id="eLen" type="number" min="8" max="64" value="20"></label>
+    <label class="chk inl"><input id="eSym" type="checkbox" checked> !@#$</label></div>
+  <label>Website<input id="eUrl" type="url" autocomplete="off" autocapitalize="none"></label>
+  <label>Notes<textarea id="eNotes" rows="4"></textarea></label>
+  <p id="eErr" class="err"></p>
+  <div class="row"><button id="eSave" class="primary">Save</button><button data-close>Cancel</button></div>
+</div>
+
+<div id="dGen" class="sheet" hidden>
+  <h2 class="gold">Strong password generator</h2>
+  <input id="gOut" class="mono" readonly>
+  <div class="row"><label class="inl">Length <input id="gLen" type="number" min="8" max="64" value="20"></label>
+    <label class="chk inl"><input id="gSym" type="checkbox" checked> Include symbols (!@#$...)</label></div>
+  <div class="row"><button id="gGen" class="primary">Generate</button><button id="gCopy">Copy</button><button data-close>Close</button></div>
+</div>
+
+<div id="dMaster" class="sheet" hidden>
+  <h2 class="gold">Change Master Password</h2>
+  <input id="mCur" type="password" placeholder="Current master password">
+  <input id="mNew1" type="password" placeholder="New master password (at least 8 characters)">
+  <input id="mNew2" type="password" placeholder="Type the new password again">
+  <label class="chk"><input type="checkbox" data-show="mCur,mNew1,mNew2"> Show passwords</label>
+  <p class="warntext">Remember: if you forget your new master password, your saved passwords cannot be recovered.</p>
+  <p id="mErr" class="err"></p>
+  <div class="row"><button id="mOk" class="primary">Change</button><button data-close>Cancel</button></div>
+</div>
+
+<div id="dImport" class="sheet" hidden>
+  <h2 class="gold">Import vault file</h2>
+  <p id="iInfo" class="dim"></p>
+  <input id="iPw" type="password" placeholder="Master password of that file">
+  <label class="chk"><input type="checkbox" data-show="iPw"> Show password</label>
+  <p id="iErr" class="err"></p>
+  <div class="row"><button id="iOk" class="primary">Import</button><button data-close>Cancel</button></div>
+</div>
+
+<div id="dConfirm" class="sheet" hidden>
+  <p id="cfText"></p>
+  <div class="row"><button id="cfYes" class="danger">Yes</button><button id="cfNo">No</button></div>
+</div>
+
+<input id="fileIn" type="file" hidden>
+<div id="toast" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>
