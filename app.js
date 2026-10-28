@@ -156,7 +156,8 @@
   $('dMenu').addEventListener('click', ev => { const a = ev.target.dataset.act; if (!a) return;
     if (a === 'close') closeSheets(); else if (a === 'lock') lock(); else if (a === 'gen') { openSheet('dGen'); $('gGen').click(); }
     else if (a === 'master') { ['mCur', 'mNew1', 'mNew2'].forEach(i => $(i).value = ''); $('mErr').textContent = ''; openSheet('dMaster'); }
-    else if (a === 'export') exportVault(); else if (a === 'import') $('fileIn').click(); });
+    else if (a === 'export') exportVault(); else if (a === 'import') $('fileIn').click();
+    else if (a === 'csvin') $('csvIn').click(); else if (a === 'csvout') exportCsv(); });
   $('gGen').onclick = () => $('gOut').value = AK.strongPassword(+$('gLen').value, $('gSym').checked);
   $('gCopy').onclick = () => copySecret($('gOut').value, 'Password');
 
@@ -204,6 +205,46 @@
       toast(`Import done: ${added} added, ${updated} updated.`);
     } catch (e) { $('iErr').textContent = 'Something went wrong: ' + e.message; } finally { busy = false; $('iPw').value = ''; }
   };
+
+  // ---------- Chrome / Edge CSV import & CSV export (all on this device, nothing uploaded) ----------
+  function parseCsv(t) {
+    t = t.replace(/^\uFEFF/, ''); const rows = []; let row = [], f = '', q = false;
+    for (let i = 0; i < t.length; i++) { const c = t[i];
+      if (q) { if (c === '"') { if (t[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+      else if (c === '"') q = true; else if (c === ',') { row.push(f); f = ''; }
+      else if (c === '\n' || c === '\r') { if (c === '\r' && t[i + 1] === '\n') i++; row.push(f); rows.push(row); row = []; f = ''; }
+      else f += c; }
+    if (f !== '' || row.length) { row.push(f); rows.push(row); }
+    return rows.filter(r => r.some(x => x.trim() !== ''));
+  }
+  const norm = s => (s || '').trim().toLowerCase();
+  const host = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return norm(u); } };
+  $('csvIn').onchange = async () => {
+    const f = $('csvIn').files[0]; $('csvIn').value = ''; if (!f || !keys) return;
+    if (f.size > 20 * 1024 * 1024) { toast('That file is too big.'); return; }
+    const rows = parseCsv(await f.text()); if (rows.length < 2) { toast('No passwords found in that file.'); return; }
+    const h = rows[0].map(norm), ix = n => h.indexOf(n);
+    const iN = ix('name'), iU = ix('url'), iUs = ix('username'), iP = ix('password'), iNo = ix('note') >= 0 ? ix('note') : ix('notes');
+    if (iP < 0) { toast('This does not look like a Chrome or Edge password file (no "password" column).'); closeSheets(); return; }
+    const seen = new Set(entries.map(e => host(e.Url || e.Site) + '|' + norm(e.Username) + '|' + e.Password));
+    const list = [...entries]; let added = 0, skipped = 0;
+    for (const r of rows.slice(1)) { const g = i => i >= 0 ? (r[i] || '') : '';
+      const url = g(iU).trim(), user = g(iUs).trim(), pw = g(iP); if (!pw && !user) { skipped++; continue; }
+      const k = host(url || g(iN)) + '|' + norm(user) + '|' + pw; if (seen.has(k)) { skipped++; continue; } seen.add(k);
+      list.push(AK.newEntry({ Site: g(iN).trim() || host(url) || 'Imported', Username: user, Password: pw, Url: url, Notes: g(iNo) })); added++; }
+    try { if (added) await saveEntries(list); closeSheets(); render();
+      toast(`Import done: ${added} added, ${skipped} skipped (already saved or empty). You can now delete the CSV file from your Downloads.`); }
+    catch (e) { toast('Import failed: ' + e.message); }
+  };
+  async function exportCsv() {
+    if (!keys) return;
+    if (!(await confirmBox('This file will NOT be encrypted. Anyone who opens it can read your passwords. Delete it when you are done. Continue?'))) return;
+    const esc = v => '"' + String(v || '').replace(/"/g, '""') + '"';
+    const csv = 'name,url,username,password,note\r\n' + entries.map(e => [e.Site, e.Url, e.Username, e.Password, e.Notes].map(esc).join(',')).join('\r\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = 'Allkeys-passwords-' + AK.stamp().slice(0, 10) + '.csv'; document.body.append(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); closeSheets(); toast(`Exported ${entries.length} passwords to your Downloads.`);
+  }
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   showLock();

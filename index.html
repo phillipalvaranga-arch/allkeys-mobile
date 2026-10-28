@@ -57,6 +57,8 @@
   <button data-act="gen">Password Generator</button>
   <button data-act="export">Export vault file (to PC)</button>
   <button data-act="import">Import vault file (from PC)</button>
+  <button data-act="csvin">Import passwords from Chrome / Edge (CSV)</button>
+  <button data-act="csvout">Export passwords as CSV (not encrypted)</button>
   <button data-act="master">Change Master Password</button>
   <button data-act="lock">Lock</button>
   <button data-act="close" class="dim">Close</button>
@@ -121,6 +123,7 @@
 </div>
 
 <input id="fileIn" type="file" hidden>
+<input id="csvIn" type="file" accept=".csv,text/csv" hidden>
 <div id="toast" hidden></div>
 <script src="crypto.js"></script>
 <script src="app.js"></script>
